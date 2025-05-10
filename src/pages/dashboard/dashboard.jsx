@@ -3,6 +3,8 @@ import { Link, NavLink, Outlet } from "react-router";
 import decal from '../../assets/adecal1.png'
 import { MaterialSymbolsLogout } from "../../assets/logoutIcon";
 import { LogOut, Menu, X } from "lucide-react";
+import { signOut } from "@firebase/auth";
+import { auth } from "../../firebase";
 function Dashboard() {
     const [openMenu, setOpenMenu] = useState(false)
 
@@ -30,7 +32,7 @@ function Dashboard() {
                         </div>
                         : <></>
                 }
-                <button className="hover:opacity-60" onClick={() => { console.log('logout') }}>
+                <button className="hover:opacity-60" onClick={() => { signOut(auth) }}>
                     <LogOut />
                 </button>
             </div>
