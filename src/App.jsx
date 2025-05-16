@@ -1,28 +1,39 @@
+import { useEffect } from "react"
 import { HashRouter, Navigate, Route, Routes } from "react-router"
 import Index from "./pages"
 import Dashboard from "./pages/dashboard/dashboard"
+import DashboardIndex from "./pages/dashboard/dashboardIndex"
 import Product from "./pages/dashboard/product"
-import Sales from "./pages/dashboard/sales"
-import DashboardIndex from "./pages/dashboard/dashboardindex"
+import sales from "./pages/dashboard/sales"
 import Login from "./pages/login"
-import { useEffect } from "react"
 import useAuthStore from "./store/authStore"
+import Merk from "./pages/dashboard/merk"
+import Model from "./pages/dashboard/model"
+import Category from "./pages/dashboard/category"
+import Bahan from "./pages/dashboard/bahan"
+import Laminating from "./pages/dashboard/laminating"
+import Customer from "./pages/dashboard/customer"
+import Transaksi from "./pages/dashboard/transaksi"
+
 function App() {
-  // const navigate = useNavigate()
-  const {user, initializeAuth, loading} = useAuthStore()
-  useEffect(()=>{
+  const { user, initializeAuth, loading } = useAuthStore()
+
+  useEffect(() => {
     initializeAuth()
-  },[initializeAuth])
+  }, [initializeAuth])
 
   const ProtectedRoute = ({ children }) => {
-    if (loading){
-      return<></>
+    if (loading) {
+      return <></>
     }
-    if (!user){
+    
+    if (!user) {
       return <Navigate to={'/login'} />
     }
+
     return children
   }
+
   const PublicRoute = ({ children }) => {
     if (loading) {
       return <></>
@@ -47,9 +58,15 @@ function App() {
         } >
           <Route index element={<DashboardIndex />} />
           <Route path="product" element={<Product />} />
-          <Route path="sales" element={<Sales />} />
+          <Route path="merk" element={<Merk />} />
+          <Route path="model" element={<Model />} />
+          <Route path="category" element={<Category />} />
+          <Route path="bahan" element={<Bahan />} />
+          <Route path="laminating" element={<Laminating />} />
+          <Route path="customer" element={<Customer />} />
+          <Route path="transaksi" element={<Transaksi />} />
         </Route>
-        
+
       </Routes>
     </HashRouter>
   )
