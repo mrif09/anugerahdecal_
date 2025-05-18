@@ -54,7 +54,7 @@ function Laminating() {
     const handleEdit = (data) => {
         handleOpen()
         setId(data.id)
-        setValue('laminating', data.merk)
+        setValue('laminating', data.laminating)
         setIsEditing(true)
     }
 
