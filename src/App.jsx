@@ -1,19 +1,18 @@
 import { useEffect } from "react"
 import { HashRouter, Navigate, Route, Routes } from "react-router"
 import Index from "./pages"
+import Customer from "./pages/dashboard/customer"
 import Dashboard from "./pages/dashboard/dashboard"
-import DashboardIndex from "./pages/dashboard/dashboardIndex"
 import Product from "./pages/dashboard/product"
-import sales from "./pages/dashboard/sales"
+import Bahan from "./pages/dashboard/productDetails/bahan"
+import Kategori from "./pages/dashboard/productDetails/kategori"
+import Laminating from "./pages/dashboard/productDetails/laminating"
+import Merk from "./pages/dashboard/productDetails/merk"
+import Model from "./pages/dashboard/productDetails/model"
+import ProductDetails from "./pages/dashboard/productDetails/productDetails"
+import Transaksi from "./pages/dashboard/transaksi"
 import Login from "./pages/login"
 import useAuthStore from "./store/authStore"
-import Merk from "./pages/dashboard/merk"
-import Model from "./pages/dashboard/model"
-import Category from "./pages/dashboard/category"
-import Bahan from "./pages/dashboard/bahan"
-import Laminating from "./pages/dashboard/laminating"
-import Customer from "./pages/dashboard/customer"
-import Transaksi from "./pages/dashboard/transaksi"
 
 function App() {
   const { user, initializeAuth, loading } = useAuthStore()
@@ -26,7 +25,7 @@ function App() {
     if (loading) {
       return <></>
     }
-    
+
     if (!user) {
       return <Navigate to={'/login'} />
     }
@@ -56,13 +55,18 @@ function App() {
           <Dashboard />
         </ProtectedRoute>
         } >
-          <Route index element={<DashboardIndex />} />
+          <Route index element={<Navigate to={'product'} />} />
           <Route path="product" element={<Product />} />
-          <Route path="merk" element={<Merk />} />
-          <Route path="model" element={<Model />} />
-          <Route path="category" element={<Category />} />
-          <Route path="bahan" element={<Bahan />} />
-          <Route path="laminating" element={<Laminating />} />
+          
+          <Route path="product-details" element={<ProductDetails />}>
+            <Route index element={<Navigate to={'merk'} />} />
+            <Route path="merk" element={<Merk />} />
+            <Route path="model" element={<Model />} />
+            <Route path="bahan" element={<Bahan />} />
+            <Route path="kategori" element={<Kategori />} />
+            <Route path="laminating" element={<Laminating />} />
+          </Route>
+          
           <Route path="customer" element={<Customer />} />
           <Route path="transaksi" element={<Transaksi />} />
         </Route>

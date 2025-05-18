@@ -1,67 +1,79 @@
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
-import { db } from "../../firebase";
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "@firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, updateDoc } from "@firebase/firestore";
+import clsx from "clsx";
+import { Edit, Minus, Plus, Trash } from "lucide-react";
+import { useState } from "react";
+import { useFieldArray, useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import useSWR, { mutate } from "swr";
-
-const fetcher = async () => {
-    const querySnapshot = await getDocs(collection(db, "products"));
-    return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-    }));
-};
+import Modal from "../../components/modal";
+import Table from "../../components/table";
+import { fetcherBahans, fetcherKategoris, fetcherLaminatings, fetcherMerks, fetcherModels, fetcherProducts } from "../../lib/fetcher";
+import { db } from "../../lib/firebase";
 
 function Product() {
-    const { data: products, error, isLoading } = useSWR('products', fetcher);
+    const { data: products, isProductsLoading } = useSWR('products', fetcherProducts);
+    const { data: merks, isMerksLoading } = useSWR('merks', fetcherMerks);
+    const { data: models, isModelsLoading } = useSWR('models', fetcherModels);
+    const { data: kategoris, isKategorisLoading } = useSWR('kategoris', fetcherKategoris);
+    const { data: bahans, isBahansLoading } = useSWR('bahans', fetcherBahans);
+    const { data: laminatings, isLaminatingsLoading } = useSWR('laminatings', fetcherLaminatings);
+
     const [editingProduct, setEditingProduct] = useState(null);
-    const { register, handleSubmit, reset, setValue, watch } = useForm();
+    const [isDelete, setIsDelete] = useState(false);
+    const { control, register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm({
+        defaultValues: {
+            listBahan: [{ id: Date.now(), bahan:'',price:0 }],
+            listLaminating: [{ id: Date.now(), laminating:'', price:0 }],
+        }
+    });
+    const bahanArray = useFieldArray({
+        control,
+        name: "listBahan",
+    });
+    const laminatingArray = useFieldArray({
+        control,
+        name: "listLaminating"
+    })
+
+    const handleRemove = (array, id) => {
+        if(array.fields.length < 1) return
+        const index = array.fields.findIndex((item) => item.id === id);
+        if (index !== -1) {
+            array.remove(index);
+        }
+    };
+
     const [isModalOpen, setIsModalOpen] = useState(false);
 
 
-    const handleImageUpload = (file) => {
-        return new Promise((resolve, reject) => {
-            if (!file) return resolve(null);
-
-            // Check file size (512KB = 512 * 1024 bytes)
-            if (file.size > 512 * 1024) {
-                toast.error("File size must be less than 512KB");
-                return resolve(null);
-            }
-
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = (error) => reject(error);
-            reader.readAsDataURL(file);
-        });
-    };
-
     const onSubmit = async (data) => {
         try {
-            const imageBase64 = data.image[0] ? await handleImageUpload(data.image[0]) : editingProduct?.image;
+            const imageBase64 = watch('imageChange') ?? data.image
 
             if (!imageBase64 && !editingProduct) {
                 toast.error("Image is required");
                 return;
             }
-
             const productData = {
-                name: data.name,
+                product: data.product,
                 description: data.description,
                 image: imageBase64,
-                laminating: [
-                    { name: data.laminatingName, price: Number(data.laminatingPrice) }
-                ],
-                materials: [
-                    { name: data.materialName, price: Number(data.materialPrice) }
-                ]
+                category: data.category,
+                merk: data.merk,
+                model: data.model,
+                laminating: watch('listLaminating'),
+                bahan: watch('listBahan')
             };
-
-            if (editingProduct) {
+             
+            if (isDelete) {
+                await deleteDoc(doc(db, "products", editingProduct.id));
+                toast.success("Product deleted successfully");
+            }
+            else if (editingProduct) {
                 await updateDoc(doc(db, "products", editingProduct.id), productData);
                 toast.success("Product updated successfully");
-            } else {
+            }
+            else {
                 await addDoc(collection(db, "products"), productData);
                 toast.success("Product added successfully");
             }
@@ -69,177 +81,213 @@ function Product() {
             reset();
             setEditingProduct(null);
             handleCloseModal();
-            mutate('products'); // Revalidate the data using SWR
+            mutate('products');
         } catch (error) {
-            toast.error("Error saving product");
+            toast.error(isDelete ? "Error delete product" : editingProduct ? "Error update product" : "Error saving product");
             console.log(error)
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this product?")) {
-            try {
-                await deleteDoc(doc(db, "products", id));
-                toast.success("Product deleted successfully");
-                mutate('products'); // Revalidate the products data
-            } catch (error) {
-                toast.error("Error deleting product");
-                console.log(error)
-            }
-        }
+    const handleDelete = (product) => {
+        setIsDelete(true)
+        handleEdit(product)
     };
 
-    const handleEdit = (product) => {
-        setEditingProduct(product);
-        setValue("name", product.name);
-        setValue("description", product.description);
-        setValue("laminatingName", product.laminating[0]?.name);
-        setValue("laminatingPrice", product.laminating[0]?.price);
-        setValue("materialName", product.materials[0]?.name);
-        setValue("materialPrice", product.materials[0]?.price);
+    const handleEdit = (data) => {
+        setEditingProduct(data);
+        setValue("product", data.product);
+        setValue("description", data.description);
+        setValue("category", data.category);
+        setValue("merk", data.merk);
+        setValue("model", data.model);
+        setValue("image", data.image);
+        setValue("listLaminating", data.laminating);
+        setValue("listBahan", data.bahan);
         setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
+        setIsDelete(false)
         setEditingProduct(null);
         reset();
     };
 
+
+    const priceProduct = (product) => {
+        const laminating = Math.min(...product.laminating.map(item => item.price))
+        const bahan = Math.min(...product.bahan.map(item => item.price))
+        const fixInfinitiny = (num) => num === Infinity ? 0 : num
+        const total = fixInfinitiny(laminating) + fixInfinitiny(bahan);
+        return total.toLocaleString()
+    }
+
+    if (isProductsLoading || isMerksLoading || isModelsLoading || isKategorisLoading || isBahansLoading || isLaminatingsLoading) {
+        return <>Please wait...</>
+    }
+
     return (
-        <div className="p-4">
+        <div className="p-4 container">
 
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between gap-x-4  items-center mb-4">
                 <h2 className="text-2xl font-semibold">Product</h2>
-                {!isLoading && (
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                    >
-                        Add New Product
-                    </button>
-                )}
+                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Add Product</button>
             </div>
 
-            {error && <div className="text-red-500">Failed to load products</div>}
-            {isLoading && <div>Loading...</div>}
+            <Modal isOpen={isModalOpen} handleOpen={handleCloseModal} title={isDelete ? 'Delete Product' : editingProduct ? 'Edit Product' : 'Add Product'}>
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                    <div>
+                        <label className="block mb-2">Product:</label>
+                        <input placeholder="product" disabled={isDelete} {...register('product')} className="w-full p-2 border rounded" required />
+                    </div>
 
-            {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-[rgba(0,0,0,.8)] bg-opacity-20 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-8 w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold">
-                                {editingProduct ? 'Edit Product' : 'Add New Product'}
-                            </h3>
-                            <button
-                                onClick={handleCloseModal}
-                                className="text-gray-500 hover:text-gray-700"
-                            >
-                                ✕
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                            <div>
-                                <label className="block mb-2">Name:</label>
-                                <input {...register("name")} className="w-full p-2 border rounded" required />
-                            </div>
-
-                            <div>
-                                <label className="block mb-2">Image: *max 512kb
-                                    {watch("image") && watch("image").length > 0 && (
-                                        <img
-                                            src={URL.createObjectURL(watch("image")[0])}
-                                            alt="Image Preview"
-                                            className="mt-2 w-32 h-32 object-cover"
-                                        />
-                                    )}
-                                </label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    {...register("image")}
-                                    className="w-full p-2 border rounded"
-                                    required={!editingProduct}
+                    <div>
+                        <label className="mb-2 block">Image: *max 100kb
+                            {(watch("image")?.length > 0 || watch("imageChange")?.length > 0) && (
+                                <img
+                                    src={watch('imageChange') || watch("image")}
+                                    alt="Image Preview"
+                                    className={`mt-2 w-32 h-32 object-cover`}
                                 />
-                            </div>
-
-                            <div>
-                                <label className="block mb-2">Description:</label>
-                                <textarea {...register("description")} className="w-full p-2 border rounded" required />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h3 className="font-bold mb-2">Laminating</h3>
-                                    <div className="space-y-2">
-                                        <input {...register("laminatingName")} placeholder="Name" className="w-full p-2 border rounded" required />
-                                        <input type="number" {...register("laminatingPrice")} placeholder="Price" className="w-full p-2 border rounded" required />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="font-bold mb-2">Material</h3>
-                                    <div className="space-y-2">
-                                        <input {...register("materialName")} placeholder="Name" className="w-full p-2 border rounded" required />
-                                        <input type="number" {...register("materialPrice")} placeholder="Price" className="w-full p-2 border rounded" required />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-blue-300"
-                            >
-                                {isLoading ? 'Saving...' : (editingProduct ? 'Update Product' : 'Add Product')}
-                            </button>
-                        </form>
+                            )}
+                        </label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            {...register("image")}
+                            className={clsx(isDelete && 'hidden', "w-full p-2 border rounded")}
+                            required={!editingProduct}
+                            onChange={(e) => {
+                                const file = e.target.files[0]
+                                if (file.size > 100 * 1024) {
+                                    toast.error("File size must be less than 100KB");
+                                    setValue('image', null)
+                                    return;
+                                }
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                    setValue("imageChange", reader.result);
+                                };
+                                reader.readAsDataURL(file);
+                            }}
+                        />
                     </div>
-                </div>
-            )}
 
+                    <div>
+                        <label className="block mb-2">Description:</label>
+                        <textarea placeholder="deskripsi" disabled={isDelete} {...register("description")} className="w-full p-2 border rounded" required />
+                    </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {products?.map(product => (
-                    <div key={product.id} className="border p-4 rounded">
-                        <img src={product.image} alt={product.name} className="w-full h-24 object-cover mb-2" />
-                        <h3 className="font-bold">{product.name}</h3>
-                        <p className="text-sm">{product.description}</p>
+                    <div className={isDelete && 'hidden'}>
+                        <label className="block mb-2">Category:</label>
+                        <select {...register("category")} className="w-full p-2 border rounded" required>
+                            <option value="">Select Category</option>
+                            {kategoris?.map((option, id) =>
+                                <option key={id} value={option.kategori}>{option.kategori}</option>
+                            )}
+                        </select>
+                    </div>
 
+                    <div className={isDelete && 'hidden'}>
+                        <label className="block mb-2">Merk:</label>
+                        <select {...register("merk")} className="w-full p-2 border rounded" required>
+                            <option value="">Select Merk</option>
+                            {merks?.map((option, id) =>
+                                <option key={id} value={option.merk}>{option.merk}</option>
+                            )}
+                        </select>
+                    </div>
+
+                    <div className={clsx(isDelete && 'hidden')}>
+                        <label className="block mb-2">Model:</label>
+                        <select {...register("model")} className="w-full p-2 border rounded" required>
+                            <option value="">Select Model</option>
+                            {models?.filter(e => e.merk == watch('merk')).map((option, id) =>
+                                <option key={id} value={option.model}>{option.model}</option>
+                            )}
+                        </select>
+                    </div>
+
+                    <div className={isDelete && 'hidden'}>
+                        <h3 className="font-bold mb-2">Bahan</h3>
                         {
-                            (() => {
-                                const laminatingPrices = product.laminating.map(item => item.price);
-                                const materialPrices = product.materials.map(item => item.price);
-                                const lowestLaminating = Math.min(...laminatingPrices);
-                                const lowestMaterial = Math.min(...materialPrices);
-                                const total = lowestLaminating + lowestMaterial;
-                                return (
-                                    <h4 className="font-semibold">
-                                        Rp. {total}
-                                    </h4>
-                                );
-                            })()
+                            bahanArray.fields.map((field, id) => <div className="flex gap-2 my-2" key={id}>
+                                <select {...register(`listBahan.${id}.bahan`)} className="w-full p-2 border rounded" required>
+                                    <option value="" >Select Bahan</option>
+                                    {bahans?.map((option, idx) =>
+                                        <option key={idx} value={option.bahan}>{option.bahan}</option>
+                                    )}
+                                </select>
+                                <input {...register(`listBahan.${id}.price`)} type="number" placeholder="10000" className="w-full p-2 border rounded" required />
+                                <button type="button" onClick={() => handleRemove(bahanArray, field.id)}>
+                                    <Minus className="hover:opacity-70" />
+                                </button>
+                            </div>)
                         }
-
-                        <div className="mt-4 space-x-2">
-                            <button
-                                onClick={() => handleEdit(product)}
-                                className="bg-yellow-500 text-white px-3 py-1 rounded"
-                            >
-                                Edit
-                            </button>
-                            <button
-                                onClick={() => handleDelete(product.id)}
-                                className="bg-red-500 text-white px-3 py-1 rounded"
-                            >
-                                Delete
-                            </button>
-                        </div>
+                        <button className="btn border w-full" type="button" onClick={() => bahanArray.append({ id: Date.now() })}>
+                            Add Bahan
+                        </button>
                     </div>
+
+                    <div className={isDelete && 'hidden'}>
+                        <h3 className="font-bold mb-2">Laminating</h3>
+                        {
+                            laminatingArray.fields.map((field, id) => <div className="flex gap-2 my-2" key={id}>
+                                <select {...register(`listLaminating.${id}.bahan`)} className="w-full p-2 border rounded" required>
+                                    <option value="" >Select Laminating</option>
+                                    {laminatings?.map((option, idx) =>
+                                        <option key={idx} value={option.laminating}>{option.laminating}</option>
+                                    )}
+                                </select>
+                                <input {...register(`listLaminating.${id}.price`)} type="number" placeholder="10000" className="w-full p-2 border rounded" required />
+                                <button type="button" onClick={() => handleRemove(laminatingArray, field.id)}>
+                                    <Minus className="hover:opacity-70" />
+                                </button>
+                            </div>)
+                        }
+                        <button className="btn border w-full" type="button" onClick={() => laminatingArray.append({ id: Date.now() })}>
+                            Add Laminating
+                        </button>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className={clsx("btn", isDelete ? "btn-danger" : editingProduct ? "btn-warning" : "btn-primary")}
+                    >
+                        {isSubmitting ? 'Saving...' : (isDelete ? 'Delete Product' : editingProduct ? 'Update Product' : 'Add Product')}
+                    </button>
+                </form>
+            </Modal>
+
+            <Table rows={['#', 'Image', 'Product', 'Description', 'Category', 'Merk', 'Model', 'Price', '']}>
+                {products?.map((data, id) => (
+                    <tr key={id} >
+                        <td>{id + 1}</td>
+                        <td>
+                            <img src={data.image} alt={data.name} className="w-24 h-24 object-cover rounded" />
+                        </td>
+                        <td>{data.product} </td>
+                        <td>{data.description}</td>
+                        <td>{data.category}</td>
+                        <td>{data.merk}</td>
+                        <td>{data.model}</td>
+                        <td>{priceProduct(data)}</td>
+                        <td>
+                            <div className="flex flex-col gap-2 justify-center items-center">
+                                <button onClick={() => handleEdit(data)} className="btn-warning btn">
+                                    <Edit size={16} />
+                                </button>
+
+                                <button onClick={() => handleDelete(data)} className="btn-danger btn">
+                                    <Trash size={16} />
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                 ))}
-            </div>
+            </Table>
+
         </div>
     );
 }

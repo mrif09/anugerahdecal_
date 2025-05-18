@@ -1,1 +1,37 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+.btn{
+    @apply  rounded-xl p-2 px-4;
+}
+
+.center{
+    @apply flex justify-center h-screen items-center
+}
+
+.btn-primary {
+    @apply bg-green-800 text-white;
+}
+
+.btn-danger {
+    @apply bg-red-600 text-white;
+}
+
+.btn-warning {
+    @apply bg-yellow-600 text-white;
+}
+
+button.btn:hover {
+    @apply opacity-70;
+}
+
+input:disabled, textarea:disabled, button:disabled {
+    @apply opacity-60;
+}
+
+tbody tr {
+   @apply hover:bg-gray-100;
+}
+
+tbody tr td {
+ @apply p-4;   
+}
