@@ -1,14 +1,14 @@
-import { addDoc, collection, deleteDoc, doc, updateDoc } from "@firebase/firestore";
-import clsx from "clsx";
-import { Edit, Minus, Plus, Trash } from "lucide-react";
-import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import useSWR, { mutate } from "swr";
-import Modal from "../../components/modal";
-import Table from "../../components/table";
-import { fetcherBahans, fetcherKategoris, fetcherLaminatings, fetcherMerks, fetcherModels, fetcherProducts } from "../../lib/fetcher";
-import { db } from "../../lib/firebase";
+import { addDoc, collection, deleteDoc, doc, updateDoc } from '@firebase/firestore';
+import clsx from 'clsx';
+import { Edit, Minus, Plus, Trash } from 'lucide-react';
+import { useState } from 'react';
+import { useFieldArray, useForm } from 'react-hook-form';
+import toast from 'react-hot-toast';
+import useSWR, { mutate } from 'swr';
+import Modal from '../../components/modal';
+import Table from '../../components/table';
+import { fetcherBahans, fetcherKategoris, fetcherLaminatings, fetcherMerks, fetcherModels, fetcherProducts } from '../../lib/fetcher';
+import { db } from '../../lib/firebase';
 
 function Product() {
     const { data: products, isProductsLoading } = useSWR('products', fetcherProducts);
@@ -22,21 +22,21 @@ function Product() {
     const [isDelete, setIsDelete] = useState(false);
     const { control, register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm({
         defaultValues: {
-            listBahan: [{ id: Date.now(), bahan:'',price:0 }],
-            listLaminating: [{ id: Date.now(), laminating:'', price:0 }],
+            listBahan: [{ id: Date.now(), bahan: '', price: 0 }],
+            listLaminating: [{ id: Date.now(), laminating: '', price: 0 }],
         }
     });
     const bahanArray = useFieldArray({
         control,
-        name: "listBahan",
+        name: 'listBahan',
     });
     const laminatingArray = useFieldArray({
         control,
-        name: "listLaminating"
+        name: 'listLaminating'
     })
 
     const handleRemove = (array, id) => {
-        if(array.fields.length < 1) return
+        if (array.fields.length < 1) return
         const index = array.fields.findIndex((item) => item.id === id);
         if (index !== -1) {
             array.remove(index);
@@ -51,7 +51,7 @@ function Product() {
             const imageBase64 = watch('imageChange') ?? data.image
 
             if (!imageBase64 && !editingProduct) {
-                toast.error("Image is required");
+                toast.error('Image is required');
                 return;
             }
             const productData = {
@@ -64,26 +64,26 @@ function Product() {
                 laminating: watch('listLaminating'),
                 bahan: watch('listBahan')
             };
-             
+
             if (isDelete) {
-                await deleteDoc(doc(db, "products", editingProduct.id));
-                toast.success("Product deleted successfully");
+                await deleteDoc(doc(db, 'products', editingProduct.id));
+                toast.success('Product deleted successfully');
             }
             else if (editingProduct) {
-                await updateDoc(doc(db, "products", editingProduct.id), productData);
-                toast.success("Product updated successfully");
+                await updateDoc(doc(db, 'products', editingProduct.id), productData);
+                toast.success('Product updated successfully');
             }
             else {
-                await addDoc(collection(db, "products"), productData);
-                toast.success("Product added successfully");
+                await addDoc(collection(db, 'products'), productData);
+                toast.success('Product added successfully');
             }
 
             reset();
             setEditingProduct(null);
-            handleCloseModal();
+            handleOpen();
             mutate('products');
         } catch (error) {
-            toast.error(isDelete ? "Error delete product" : editingProduct ? "Error update product" : "Error saving product");
+            toast.error(isDelete ? 'Error delete product' : editingProduct ? 'Error update product' : 'Error saving product');
             console.log(error)
         }
     };
@@ -95,19 +95,19 @@ function Product() {
 
     const handleEdit = (data) => {
         setEditingProduct(data);
-        setValue("product", data.product);
-        setValue("description", data.description);
-        setValue("category", data.category);
-        setValue("merk", data.merk);
-        setValue("model", data.model);
-        setValue("image", data.image);
-        setValue("listLaminating", data.laminating);
-        setValue("listBahan", data.bahan);
+        setValue('product', data.product);
+        setValue('description', data.description);
+        setValue('category', data.category);
+        setValue('merk', data.merk);
+        setValue('model', data.model);
+        setValue('image', data.image);
+        setValue('listLaminating', data.laminating);
+        setValue('listBahan', data.bahan);
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => {
-        setIsModalOpen(false);
+    const handleOpen = () => {
+        setIsModalOpen(!isModalOpen);
         setIsDelete(false)
         setEditingProduct(null);
         reset();
@@ -131,42 +131,42 @@ function Product() {
 
             <div className="flex justify-between gap-x-4  items-center mb-4">
                 <h2 className="text-2xl font-semibold">Product</h2>
-                <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Add Product</button>
+                <button onClick={handleOpen} className="btn btn-primary">Add Product</button>
             </div>
 
-            <Modal isOpen={isModalOpen} handleOpen={handleCloseModal} title={isDelete ? 'Delete Product' : editingProduct ? 'Edit Product' : 'Add Product'}>
+            <Modal isOpen={isModalOpen} handleOpen={handleOpen} title={isDelete ? 'Delete Product' : editingProduct ? 'Edit Product' : 'Add Product'}>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
-                        <label className="block mb-2">Product:</label>
+                        <label className=" mb-2">Product:</label>
                         <input placeholder="product" disabled={isDelete} {...register('product')} className="w-full p-2 border rounded" required />
                     </div>
 
                     <div>
-                        <label className="mb-2 block">Image: *max 100kb
-                            {(watch("image")?.length > 0 || watch("imageChange")?.length > 0) && (
+                        <label className="mb-2 ">Image: *max 100kb
+                            {(watch('image')?.length > 0 || watch('imageChange')?.length > 0) && (
                                 <img
-                                    src={watch('imageChange') || watch("image")}
+                                    src={watch('imageChange') || watch('image')}
                                     alt="Image Preview"
-                                    className={`mt-2 w-32 h-32 object-cover`}
+                                    className={'mt-2 w-32 h-32 object-cover'}
                                 />
                             )}
                         </label>
                         <input
                             type="file"
                             accept="image/*"
-                            {...register("image")}
-                            className={clsx(isDelete && 'hidden', "w-full p-2 border rounded")}
+                            {...register('image')}
+                            className={clsx(isDelete && 'hidden', 'w-full p-2 border rounded')}
                             required={!editingProduct}
                             onChange={(e) => {
                                 const file = e.target.files[0]
                                 if (file.size > 100 * 1024) {
-                                    toast.error("File size must be less than 100KB");
+                                    toast.error('File size must be less than 100KB');
                                     setValue('image', null)
                                     return;
                                 }
                                 const reader = new FileReader();
                                 reader.onloadend = () => {
-                                    setValue("imageChange", reader.result);
+                                    setValue('imageChange', reader.result);
                                 };
                                 reader.readAsDataURL(file);
                             }}
@@ -174,13 +174,13 @@ function Product() {
                     </div>
 
                     <div>
-                        <label className="block mb-2">Description:</label>
-                        <textarea placeholder="deskripsi" disabled={isDelete} {...register("description")} className="w-full p-2 border rounded" required />
+                        <label className=" mb-2">Description:</label>
+                        <textarea placeholder="deskripsi" disabled={isDelete} {...register('description')} className="w-full p-2 border rounded" required />
                     </div>
 
                     <div className={isDelete && 'hidden'}>
-                        <label className="block mb-2">Category:</label>
-                        <select {...register("category")} className="w-full p-2 border rounded" required>
+                        <label className=" mb-2">Category:</label>
+                        <select {...register('category')} className="w-full p-2 border rounded" required>
                             <option value="">Select Category</option>
                             {kategoris?.map((option, id) =>
                                 <option key={id} value={option.kategori}>{option.kategori}</option>
@@ -189,8 +189,8 @@ function Product() {
                     </div>
 
                     <div className={isDelete && 'hidden'}>
-                        <label className="block mb-2">Merk:</label>
-                        <select {...register("merk")} className="w-full p-2 border rounded" required>
+                        <label className=" mb-2">Merk:</label>
+                        <select {...register('merk')} className="w-full p-2 border rounded" required>
                             <option value="">Select Merk</option>
                             {merks?.map((option, id) =>
                                 <option key={id} value={option.merk}>{option.merk}</option>
@@ -199,8 +199,8 @@ function Product() {
                     </div>
 
                     <div className={clsx(isDelete && 'hidden')}>
-                        <label className="block mb-2">Model:</label>
-                        <select {...register("model")} className="w-full p-2 border rounded" required>
+                        <label className="mb-2">Model:</label>
+                        <select {...register('model')} className="w-full p-2 border rounded" required>
                             <option value="">Select Model</option>
                             {models?.filter(e => e.merk == watch('merk')).map((option, id) =>
                                 <option key={id} value={option.model}>{option.model}</option>
@@ -209,7 +209,7 @@ function Product() {
                     </div>
 
                     <div className={isDelete && 'hidden'}>
-                        <h3 className="font-bold mb-2">Bahan</h3>
+                        <h3 className="mb-2">Bahan:</h3>
                         {
                             bahanArray.fields.map((field, id) => <div className="flex gap-2 my-2" key={id}>
                                 <select {...register(`listBahan.${id}.bahan`)} className="w-full p-2 border rounded" required>
@@ -230,10 +230,10 @@ function Product() {
                     </div>
 
                     <div className={isDelete && 'hidden'}>
-                        <h3 className="font-bold mb-2">Laminating</h3>
+                        <h3 className="mb-2">Laminating:</h3>
                         {
                             laminatingArray.fields.map((field, id) => <div className="flex gap-2 my-2" key={id}>
-                                <select {...register(`listLaminating.${id}.bahan`)} className="w-full p-2 border rounded" required>
+                                <select {...register(`listLaminating.${id}.laminating`)} className="w-full p-2 border rounded" required>
                                     <option value="" >Select Laminating</option>
                                     {laminatings?.map((option, idx) =>
                                         <option key={idx} value={option.laminating}>{option.laminating}</option>
@@ -253,9 +253,9 @@ function Product() {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className={clsx("btn", isDelete ? "btn-danger" : editingProduct ? "btn-warning" : "btn-primary")}
+                        className={clsx('btn', isDelete ? 'btn-danger' : editingProduct ? 'btn-warning' : 'btn-primary')}
                     >
-                        {isSubmitting ? 'Saving...' : (isDelete ? 'Delete Product' : editingProduct ? 'Update Product' : 'Add Product')}
+                        {isSubmitting ? 'Saving...' : isDelete ? 'Delete Product' : editingProduct ? 'Update Product' : 'Add Product'}
                     </button>
                 </form>
             </Modal>

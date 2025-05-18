@@ -9,7 +9,7 @@
 }
 
 .btn-primary {
-    @apply bg-green-800 text-white;
+    @apply bg-green-600 text-white;
 }
 
 .btn-danger {
