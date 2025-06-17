@@ -14,6 +14,7 @@ import Transaksi from "./pages/dashboard/transaksi"
 import Login from "./pages/login"
 import useAuthStore from "./store/authStore"
 import DashboardIndex from "./pages/dashboard/dashboardIndex"
+import Invoice from "./pages/dashboard/invoice"
 
 function App() {
   const { user, initializeAuth, loading } = useAuthStore()
@@ -51,7 +52,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-
+        <Route path="/invoice/:id" element={<Invoice />} />
         <Route path="/dashboard" element={<ProtectedRoute>
           <Dashboard />
         </ProtectedRoute>

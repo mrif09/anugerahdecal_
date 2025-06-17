@@ -1,6 +1,6 @@
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from '@firebase/firestore';
 import clsx from 'clsx';
-import { Edit, Minus, Trash } from 'lucide-react';
+import { Edit, Minus } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
@@ -9,8 +9,6 @@ import Modal from '../../components/modal';
 import Table from '../../components/table';
 import { fetcherBahans, fetcherCustomers, fetcherLaminatings, fetcherProducts, fetcherTransactions } from '../../lib/fetcher';
 import { db } from '../../lib/firebase';
-import { useReactToPrint } from 'react-to-print';
-import Invoice from '../../components/Invoice';
 
 function Transaksi() {
     const { data: customers, isCustomersLoading } = useSWR('customers', fetcherCustomers);
@@ -23,9 +21,6 @@ function Transaksi() {
     const [id, setId] = useState()
     const [isDelete, setIsDelete] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
-    const [showInvoice, setShowInvoice] = useState(false)
-    const [invoiceData, setInvoiceData] = useState(null)
-    const invoiceRef = useRef();
 
     const { control, register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm({
         defaultValues: {
@@ -52,10 +47,6 @@ function Transaksi() {
         reset()
     }
 
-    const handlePrint = useReactToPrint({
-        content: () => invoiceRef.current,
-    });
-
     const onSubmit = async (data) => {
         try {
             if (isDelete) {
@@ -67,10 +58,12 @@ function Transaksi() {
                 toast.success('Transaksi update successfully')
             }
             else {
-                const docRef = await addDoc(collection(db, 'transaksis'), { ...data, date_transaction: serverTimestamp() })
+                await addDoc(collection(db, 'transaksis'), { 
+                    ...data, 
+                    status_pengerjaan: 'menunggu antrian',
+                    date_transaction: serverTimestamp() 
+                })
                 toast.success('Transaksi added successfully')
-                setInvoiceData({ ...data, date_transaction: new Date(), id: docRef.id });
-                setShowInvoice(true);
             }
             reset()
             mutate('transaksis')
@@ -126,15 +119,18 @@ function Transaksi() {
                             )}
                         </select>
                     </div>
-                    <div>
-                        <label className="block mb-2">Status Pengerjaan:</label>
-                        <select disabled={isDelete} {...register('status_pengerjaan')} className="w-full p-2 border rounded" required>
-                            <option value=''>Select Status Pengerjaan</option>
-                            {['menunggu antrian', 'sedang dikerjakan', 'sudah selesai']?.map((option, id) =>
-                                <option key={id} value={option}>{option}</option>
-                            )}
-                        </select>
-                    </div>
+                    {/* Input status pengerjaan hanya muncul saat edit */}
+                    {isEditing && (
+                        <div>
+                            <label className="block mb-2">Status Pengerjaan:</label>
+                            <select disabled={isDelete} {...register('status_pengerjaan')} className="w-full p-2 border rounded" required>
+                                <option value=''>Pilih Status Pengerjaan</option>
+                                {['menunggu antrian', 'sedang dikerjakan', 'sudah selesai']?.map((option, id) =>
+                                    <option key={id} value={option}>{option}</option>
+                                )}
+                            </select>
+                        </div>
+                    )}
                     <div>
                         <label className="block mb-2">Product: *product + ((bahan + laminating) x panjang/meter)</label>
                         {
@@ -153,7 +149,7 @@ function Transaksi() {
                                                 <option key={index} value={option.price}>{option.bahan}</option>
                                             )}
                                         </select>
-                                        <select disabled={isEditing || isDelete} {...register(`listProduct.${id}.laminating`)} className=" border rounded" required>
+                                        <select disabled={isEditing || isDelete} {...register(`listProduct.${id}.laminating`)} className=" border rounded">
                                             <option value="">Select Laminating</option>
                                             {laminatings?.map((option, index) =>
                                                 <option key={index} value={option.price}>{option.laminating}</option>
@@ -180,8 +176,9 @@ function Transaksi() {
                         {(() => {
                             const total = watch('listProduct')?.
                                 map(e => {
-                                    const priceProduct = Number(Array.isArray(e.product) ? 0 : e.product?.split(',')[1] ?? 0) 
-                                    return (  priceProduct + (( Number(e.bahan) + Number(e.laminating) )  * Number(e.qty))   ) 
+                                    const priceProduct = Number(Array.isArray(e.product) ? 0 : e.product?.split(',')[1] ?? 0)
+                                    // Pastikan laminating bisa kosong (opsional)
+                                    return (priceProduct + ((Number(e.bahan) + Number(e.laminating || 0)) * Number(e.qty)))
                                 })
                                 .reduce((acc, cur) => acc + cur, 0)
                             setValue('price', total)
@@ -198,47 +195,43 @@ function Transaksi() {
                     </button>
                 </form>
             </Modal>
-            <Table rows={['#', 'Customer', 'Produk', 'Total Harga', 'Tanggal', 'Status Pengerjaan', 'Status Pembayaran', '']}>
-                {data?.map((data, id) => (
-                    <tr key={id} >
-                        <td>{id + 1}</td>
-                        <td>{data.customer}</td>
-                        <td>
-                            {data.listProduct?.map((data, id) => <div key={id}>
-                                {data.product.split(',')[0]}, {data.qty}m <br />
-                            </div>)}
-                        </td>
-                        <td>{data.price.toLocaleString()}</td>
-                        <td>{data.date_transaction.toDate().toLocaleString('en-GB')}</td>
-                        <td>{data.status_pengerjaan}</td>
-                        <td>{data.status_pembayaran}</td>
-                        <td>
-                            <div className="flex gap-2 justify-center items-center">
-                                <button onClick={() => handleEdit(data)} className="btn-warning btn">
-                                    <Edit size={16} />
+            <Table rows={['#', 'Customer', 'Produk', 'Total Harga', 'Tanggal', 'Status', 'Status Pembayaran', 'Invoice', '']}>
+                {data
+                    ?.slice()
+                    .sort((a, b) => b.date_transaction.seconds - a.date_transaction.seconds)
+                    .map((data, id) => (
+                        <tr key={id} >
+                            <td>{id + 1}</td>
+                            <td>{data.customer}</td>
+                            <td>
+                                {data.listProduct?.map((data, id) => <div key={id}>
+                                    {data.product.split(',')[0]}, {data.qty}m <br />
+                                </div>)}
+                            </td>
+                            <td>{data.price.toLocaleString()}</td>
+                            <td>{data.date_transaction.toDate().toLocaleString('en-GB')}</td>
+                            <td>{data.status_pengerjaan}</td>
+                            <td>{data.status_pembayaran}</td>
+                            {/* Kolom Invoice */}
+                            <td>
+                                <button
+                                    className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white font-semibold shadow transition"
+                                    onClick={() => window.open(`/#/invoice/${data.id}`, '_blank')}
+                                >
+                                    Invoice
                                 </button>
-
-                                <button onClick={() => handleDelete(data)} className="btn-danger btn">
-                                    <Trash size={16} />
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                ))}
+                            </td>
+                            <td>
+                                <div className="flex gap-2 justify-center items-center">
+                                    <button onClick={() => handleEdit(data)} className="btn-warning btn">
+                                        <Edit size={16} />
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    ))}
             </Table>
         </div>
-        {/* MODAL INVOICE CETAK */}
-        {showInvoice && invoiceData && (
-            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-                <div className="bg-white p-6 rounded shadow-lg">
-                    <Invoice ref={invoiceRef} transaksi={invoiceData} />
-                    <div className="flex gap-2 mt-4">
-                        <button className="btn btn-primary" onClick={handlePrint}>Cetak Invoice</button>
-                        <button className="btn btn-secondary" onClick={() => setShowInvoice(false)}>Tutup</button>
-                    </div>
-                </div>
-            </div>
-        )}
     </>);
 }
 
