@@ -21,12 +21,12 @@ function DashboardIndex() {
             <div className="flex gap-4 py-4">
                 <div className="flex-1 p-8 shadow-2xl rounded-xl">
                     <h2 className="text-xl font-semibold">Total Transaksi</h2>
-                    <span className="text-xl">{data.map(e => e.transaksi).reduce((acc, cur) => acc + cur, 0)}</span>
+                    <span className="text-xl">Rp{data?.map(e => e.transaksi).reduce((acc, cur) => acc + cur, 0).toLocaleString()}</span>
                 </div>
 
                 <div className="flex-1 p-8 shadow-2xl rounded-xl">
                     <h2 className="text-xl font-semibold">Total Pendapatan</h2>
-                    <span className="text-xl">Rp{data.map(e => e.pendapatan).reduce((acc, cur) => acc + cur, 0).toLocaleString()}</span>
+                    <span className="text-xl">Rp{data?.map(e => e.pendapatan).reduce((acc, cur) => acc + cur, 0).toLocaleString()}</span>
                 </div>
             </div>
             <div className='flex gap-2'>

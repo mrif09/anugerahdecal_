@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from '@firebase/firestore';
 import clsx from 'clsx';
 import { Edit, Minus, Trash } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import useSWR, { mutate } from 'swr';
@@ -9,6 +9,8 @@ import Modal from '../../components/modal';
 import Table from '../../components/table';
 import { fetcherBahans, fetcherCustomers, fetcherLaminatings, fetcherProducts, fetcherTransactions } from '../../lib/fetcher';
 import { db } from '../../lib/firebase';
+import { useReactToPrint } from 'react-to-print';
+import Invoice from '../../components/Invoice';
 
 function Transaksi() {
     const { data: customers, isCustomersLoading } = useSWR('customers', fetcherCustomers);
@@ -21,6 +23,10 @@ function Transaksi() {
     const [id, setId] = useState()
     const [isDelete, setIsDelete] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
+    const [showInvoice, setShowInvoice] = useState(false)
+    const [invoiceData, setInvoiceData] = useState(null)
+    const invoiceRef = useRef();
+
     const { control, register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm({
         defaultValues: {
             listProduct: [{ id: Date.now(), product: [], }]
@@ -30,7 +36,6 @@ function Transaksi() {
         control,
         name: 'listProduct'
     })
-
 
     const handleRemove = (array, id) => {
         if (array.fields.length < 1) return
@@ -46,10 +51,13 @@ function Transaksi() {
         setIsEditing(false)
         reset()
     }
+
+    const handlePrint = useReactToPrint({
+        content: () => invoiceRef.current,
+    });
+
     const onSubmit = async (data) => {
         try {
-
-
             if (isDelete) {
                 await deleteDoc(doc(db, 'transaksis', id));
                 toast.success('Transaksi delete successfully')
@@ -59,8 +67,10 @@ function Transaksi() {
                 toast.success('Transaksi update successfully')
             }
             else {
-                await addDoc(collection(db, 'transaksis'), { ...data, date_transaction: serverTimestamp() })
+                const docRef = await addDoc(collection(db, 'transaksis'), { ...data, date_transaction: serverTimestamp() })
                 toast.success('Transaksi added successfully')
+                setInvoiceData({ ...data, date_transaction: new Date(), id: docRef.id });
+                setShowInvoice(true);
             }
             reset()
             mutate('transaksis')
@@ -89,8 +99,6 @@ function Transaksi() {
     if (isLoading || isCustomersLoading || isProductsLoading || isLaminatingsLoading || isBahansLoading) {
         return <>Please wait...</>
     }
-
-    console.log(data)
 
     return (<>
         <div className="p-4 container">
@@ -219,6 +227,18 @@ function Transaksi() {
                 ))}
             </Table>
         </div>
+        {/* MODAL INVOICE CETAK */}
+        {showInvoice && invoiceData && (
+            <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded shadow-lg">
+                    <Invoice ref={invoiceRef} transaksi={invoiceData} />
+                    <div className="flex gap-2 mt-4">
+                        <button className="btn btn-primary" onClick={handlePrint}>Cetak Invoice</button>
+                        <button className="btn btn-secondary" onClick={() => setShowInvoice(false)}>Tutup</button>
+                    </div>
+                </div>
+            </div>
+        )}
     </>);
 }
 
