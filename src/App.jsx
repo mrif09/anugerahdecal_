@@ -13,6 +13,7 @@ import ProductDetails from "./pages/dashboard/productDetails/productDetails"
 import Transaksi from "./pages/dashboard/transaksi"
 import Login from "./pages/login"
 import useAuthStore from "./store/authStore"
+import DashboardIndex from "./pages/dashboard/dashboardIndex"
 
 function App() {
   const { user, initializeAuth, loading } = useAuthStore()
@@ -55,7 +56,7 @@ function App() {
           <Dashboard />
         </ProtectedRoute>
         } >
-          <Route index element={<Navigate to={'product'} />} />
+          <Route index element= {<DashboardIndex />} />
           <Route path="product" element={<Product />} />
           
           <Route path="product-details" element={<ProductDetails />}>
