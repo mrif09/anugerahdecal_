@@ -125,7 +125,7 @@ function Transaksi() {
                             <label className="block mb-2">Status Pengerjaan:</label>
                             <select disabled={isDelete} {...register('status_pengerjaan')} className="w-full p-2 border rounded" required>
                                 <option value=''>Pilih Status Pengerjaan</option>
-                                {['menunggu antrian', 'sedang dikerjakan', 'sudah selesai']?.map((option, id) =>
+                                {['menunggu antrian', 'sedang dikerjakan', 'cancel', 'sudah selesai']?.map((option, id) =>
                                     <option key={id} value={option}>{option}</option>
                                 )}
                             </select>
@@ -177,7 +177,7 @@ function Transaksi() {
                             const total = watch('listProduct')?.
                                 map(e => {
                                     const priceProduct = Number(Array.isArray(e.product) ? 0 : e.product?.split(',')[1] ?? 0)
-                                    // Pastikan laminating bisa kosong (opsional)
+                                    // Pastikan laminating bisa kosong
                                     return (priceProduct + ((Number(e.bahan) + Number(e.laminating || 0)) * Number(e.qty)))
                                 })
                                 .reduce((acc, cur) => acc + cur, 0)
@@ -215,15 +215,34 @@ function Transaksi() {
                             {/* Kolom Invoice */}
                             <td>
                                 <button
-                                    className="px-4 py-2 rounded bg-green-500 hover:bg-green-600 text-white font-semibold shadow transition"
-                                    onClick={() => window.open(`/#/invoice/${data.id}`, '_blank')}
+                                    className={clsx(
+                                        "px-4 py-2 rounded font-semibold shadow transition",
+                                        data.status_pengerjaan === 'cancel'
+                                            ? "bg-gray-400 text-white cursor-not-allowed"
+                                            : "bg-green-500 hover:bg-green-600 text-white"
+                                    )}
+                                    onClick={() => {
+                                        if (data.status_pengerjaan !== 'cancel') {
+                                            window.open(`/#/invoice/${data.id}`, '_blank')
+                                        }
+                                    }}
+                                    disabled={data.status_pengerjaan === 'cancel'}
                                 >
                                     Invoice
                                 </button>
                             </td>
                             <td>
                                 <div className="flex gap-2 justify-center items-center">
-                                    <button onClick={() => handleEdit(data)} className="btn-warning btn">
+                                    <button
+                                        onClick={() => handleEdit(data)}
+                                        className="btn-warning btn"
+                                        disabled={data.status_pengerjaan === 'cancel' || data.status_pengerjaan === 'sudah selesai'}
+                                        style={
+                                            data.status_pengerjaan === 'cancel' || data.status_pengerjaan === 'sudah selesai'
+                                                ? { opacity: 0.5, cursor: 'not-allowed' }
+                                                : {}
+                                        }
+                                    >
                                         <Edit size={16} />
                                     </button>
                                 </div>
