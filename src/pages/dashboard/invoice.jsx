@@ -24,6 +24,13 @@ function Invoice() {
   if (loading) return <div className="p-8">Loading...</div>;
   if (!transaksi) return <div className="p-8">Data tidak ditemukan.</div>;
 
+  // Hitung nominal DP dan sisa pembayaran jika DP
+  const nominalDP = Number(transaksi.nominal_dp) || 0;
+  const sisaPembayaran =
+    transaksi.status_pembayaran === "DP"
+      ? Math.max(Number(transaksi.price) - nominalDP, 0)
+      : 0;
+
   return (
     <div className="print-invoice max-w-2xl mx-auto mt-8 bg-white text-black p-8 rounded shadow">
       <h2 className="text-xl font-semibold mb-1">Invoice</h2>
@@ -46,28 +53,39 @@ function Invoice() {
           </tr>
           <tr>
             <td className="py-1 pr-4 font-medium">Tanggal</td>
-            <td className="py-1">{transaksi.date_transaction?.toDate?.().toLocaleString('en-GB')}</td>
+            <td className="py-1">
+              {transaksi.date_transaction?.toDate?.().toLocaleString("en-GB")}
+            </td>
           </tr>
           <tr>
             <td className="py-1 pr-4 font-medium align-top">Produk</td>
             <td className="py-1">
               <ul className="space-y-2">
                 {transaksi.listProduct?.map((item, idx) => {
-                  const namaProduk = item.product?.split(',')[0] ?? '';
-                  const hargaProduk = Number(item.product?.split(',')[1] ?? 0);
+                  const namaProduk = item.product?.split(",")[0] ?? "";
+                  const hargaProduk = Number(item.product?.split(",")[1] ?? 0);
                   const hargaBahan = Number(item.bahan ?? 0);
                   const hargaLaminating = Number(item.laminating ?? 0);
                   const qty = Number(item.qty ?? 0);
-                  const hargaTotalProduk = hargaProduk + ((hargaBahan + hargaLaminating) * qty);
+                  const hargaTotalProduk =
+                    hargaProduk + (hargaBahan + hargaLaminating) * qty;
                   return (
-                    <li key={idx} className="bg-white rounded border-l-4 border-blue-400 p-2 text-black shadow-sm">
+                    <li
+                      key={idx}
+                      className="bg-white rounded border-l-4 border-blue-400 p-2 text-black shadow-sm"
+                    >
                       <div className="font-medium">
-                        {namaProduk} <span className="text-gray-500">- {qty}m</span>
-                        <span className="float-right font-semibold">Rp{hargaTotalProduk.toLocaleString()}</span>
+                        {namaProduk}{" "}
+                        <span className="text-gray-500">- {qty}m</span>
+                        <span className="float-right font-semibold">
+                          Rp{hargaTotalProduk.toLocaleString()}
+                        </span>
                       </div>
                       <div className="text-xs ml-2 mt-1 text-black">
-                        Harga Produk: <span>Rp{hargaProduk.toLocaleString()}</span><br />
-                        Harga Bahan: <span>Rp{hargaBahan.toLocaleString()}</span> /m<br />
+                        Harga Produk: <span>Rp{hargaProduk.toLocaleString()}</span>
+                        <br />
+                        Harga Bahan: <span>Rp{hargaBahan.toLocaleString()}</span> /m
+                        <br />
                         Harga Laminasi: <span>Rp{hargaLaminating.toLocaleString()}</span> /m
                       </div>
                     </li>
@@ -79,9 +97,31 @@ function Invoice() {
           <tr>
             <td className="py-2 pr-4 font-bold">Total Harga</td>
             <td className="py-2">
-              <span className="text-base font-bold">Rp{transaksi.price?.toLocaleString()}</span>
+              <span className="text-base font-bold">
+                Rp{transaksi.price?.toLocaleString()}
+              </span>
             </td>
           </tr>
+          {transaksi.status_pembayaran === "DP" && (
+            <>
+              <tr>
+                <td className="py-1 pr-4 font-bold">Nominal DP</td>
+                <td className="py-1">
+                  <span className="font-bold text-blue-700">
+                    Rp{nominalDP.toLocaleString()}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td className="py-1 pr-4 font-bold">Sisa Pembayaran</td>
+                <td className="py-1">
+                  <span className="font-bold text-red-600">
+                    Rp{sisaPembayaran.toLocaleString()}
+                  </span>
+                </td>
+              </tr>
+            </>
+          )}
         </tbody>
       </table>
       <button

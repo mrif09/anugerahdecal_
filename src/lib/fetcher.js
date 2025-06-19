@@ -27,7 +27,9 @@ export const fetcherDashboards = async () => {
         where('date_transaction', '>=', startOfMonth),
         where('date_transaction', '<=', endOfMonth)
     ));
-    const data = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    const data = querySnapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter(cur => cur.status_pengerjaan !== 'cancel') // hanya yang bukan cancel
         .reduce((acc, cur) => {
             const date = cur.date_transaction.toDate()
             const day = String(date.getDate()).padStart(2, '0');
