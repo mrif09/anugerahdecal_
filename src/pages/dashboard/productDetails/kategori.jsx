@@ -12,6 +12,7 @@ import { db } from "../../../lib/firebase";
 
 
 function Kategori() {
+    // Mengambil data kategori dari SWR dan mengatur state lokal
     const { data, isLoading } = useSWR('kategoris', fetcherKategoris);
     const [isOpen, setIsOpen] = useState(false)
     const [id, setId] = useState()
@@ -19,6 +20,7 @@ function Kategori() {
     const [isEditing, setIsEditing] = useState(false)
     const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm()
     const handleOpen = () => {
+    // Membuka atau menutup modal, serta reset state delete/edit
         setIsOpen(!isOpen)
         setIsDelete(false)
         setIsEditing(false)
