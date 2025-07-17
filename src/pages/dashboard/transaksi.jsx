@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc } from '@firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, getDoc } from '@firebase/firestore';
 import clsx from 'clsx';
 import { Edit, Minus } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -79,27 +79,57 @@ function Transaksi() {
                 data.status_pembayaran = 'cancel';
             }
 
+            // Menambahkan transaksi
             if (isDelete) {
                 await deleteDoc(doc(db, 'transaksis', id));
                 toast.success('Transaksi deleted successfully');
             } else if (isEditing) {
                 const updatePayload = { ...data, date_transaction: serverTimestamp() };
-                if (isLunasOnlyEditable) {
-                    // Jika status pengerjaan cancel, update juga status pembayaran
-                    if (data.status_pengerjaan === 'cancel') {
-                        await updateDoc(doc(db, 'transaksis', id), {
-                            status_pengerjaan: 'cancel',
-                            status_pembayaran: 'cancel'
-                        });
-                    } else {
-                        await updateDoc(doc(db, 'transaksis', id), { status_pengerjaan: data.status_pengerjaan });
-                    }
-                } else {
-                    await updateDoc(doc(db, 'transaksis', id), updatePayload);
-                }
+                await updateDoc(doc(db, 'transaksis', id), updatePayload);
                 toast.success('Transaksi updated successfully');
             } else {
-                // Status pengerjaan otomatis "menunggu antrian" saat tambah
+                // Update stok bahan dan laminating
+                const listProduct = formData.listProduct;
+                for (const product of listProduct) {
+                    const qty = Number(product.qty) || 0;
+
+                    // Update stok bahan jika dipilih
+                    if (product.bahan) {
+                        const bahanRef = doc(db, 'bahans', product.bahan);
+                        const bahanDoc = await getDoc(bahanRef);
+                        if (bahanDoc.exists()) {
+                            const bahanData = bahanDoc.data();
+                            if (bahanData.stok >= qty) {
+                                await updateDoc(bahanRef, { stok: bahanData.stok - qty });
+                            } else {
+                                toast.error('Stok bahan tidak cukup');
+                                return;
+                            }
+                        } else {
+                            toast.error('Bahan tidak ditemukan');
+                            return;
+                        }
+                    }
+
+                    // Update stok laminating jika dipilih
+                    if (product.laminating) {
+                        const laminatingRef = doc(db, 'laminatings', product.laminating);
+                        const laminatingDoc = await getDoc(laminatingRef);
+                        if (laminatingDoc.exists()) {
+                            const laminatingData = laminatingDoc.data();
+                            if (laminatingData.stok >= qty) {
+                                await updateDoc(laminatingRef, { stok: laminatingData.stok - qty });
+                            } else {
+                                toast.error('Stok laminating tidak cukup');
+                                return;
+                            }
+                        } else {
+                            toast.error('Laminating tidak ditemukan');
+                            return;
+                        }
+                    }
+                }
+
                 await addDoc(collection(db, 'transaksis'), {
                     ...data,
                     status_pengerjaan: 'menunggu antrian',
@@ -157,19 +187,25 @@ function Transaksi() {
         }
     };
 
+    // Penjumlahan harga yang benar (ambil harga bahan/laminating dari id)
     const totalHarga = (() => {
         const list = watch('listProduct') || [];
         return list
             .map(e => {
+                // Ambil harga produk
                 const priceProduct = Number(
                     typeof e.product === 'string' && e.product.includes(',')
                         ? e.product.split(',')[1]
                         : 0
                 );
-                const bahan = Number(e.bahan) || 0;
-                const laminating = Number(e.laminating) || 0;
+                // Ambil harga bahan dari id
+                const bahanObj = bahans?.find(b => b.id === e.bahan);
+                const hargaBahan = bahanObj ? Number(bahanObj.price) : 0;
+                // Ambil harga laminating dari id
+                const laminatingObj = laminatings?.find(l => l.id === e.laminating);
+                const hargaLaminating = laminatingObj ? Number(laminatingObj.price) : 0;
                 const qty = Number(e.qty) || 0;
-                return (priceProduct + ((bahan + laminating) * qty));
+                return (priceProduct + ((hargaBahan + hargaLaminating) * qty));
             })
             .reduce((acc, cur) => acc + cur, 0);
     })();
@@ -322,16 +358,16 @@ function Transaksi() {
                                             <select disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.bahan`)} className="p-2 border rounded" required>
                                                 <option value="">Select Bahan</option>
                                                 {bahans?.map((option, index) =>
-                                                    <option key={index} value={option.price}>{option.bahan}</option>
+                                                    <option key={index} value={option.id}>{option.bahan} (Stok: {option.stok})</option>
                                                 )}
                                             </select>
                                             <select disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.laminating`)} className="border rounded">
                                                 <option value="">Select Laminating</option>
                                                 {laminatings?.map((option, index) =>
-                                                    <option key={index} value={option.price}>{option.laminating}</option>
+                                                    <option key={index} value={option.id}>{option.laminating} (Stok: {option.stok})</option>
                                                 )}
                                             </select>
-                                            <input disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.qty`)} type="number" className="w-20 border p-2 rounded" placeholder="1" required />
+                                            <input disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.qty`)} type="number" className="w-20 border p-2 rounded" placeholder="1" required min={1} />
                                             {!(isEditing || isDelete || isEditDisabled || isLunasOnlyEditable) &&
                                                 <button type="button" onClick={() => handleRemove(productArray, field.id)}>
                                                     <Minus className="hover:opacity-70" />
@@ -383,7 +419,7 @@ function Transaksi() {
                                         className="w-full pl-8 p-2 border rounded"
                                         placeholder="0"
                                         disabled={isDelete || isEditDisabled || isLunasOnlyEditable}
-                                        value={nominalDPRaw || ''} // <-- Hapus .toLocaleString('id-ID')
+                                        value={nominalDPRaw || ''}
                                         onChange={e => {
                                             // Hanya angka, hapus karakter non-digit
                                             const raw = e.target.value.replace(/[^\d]/g, '');
