@@ -56,6 +56,7 @@ function Bahan() {
         setId(data.id)
         setValue('bahan', data.bahan)
         setValue('price', data.price)
+        setValue('stok', data.stok) // tambahkan stok agar bisa diedit
         setIsEditing(true)
     }
 
@@ -75,6 +76,10 @@ function Bahan() {
                     <label className="block mb-2">Price (Meter):</label>
                     <input type='number' disabled={isDelete} {...register('price')} className="w-full p-2 border rounded" required />
                 </div>
+                <div>
+                    <label className="block mb-2">Stok (Meter):</label>
+                    <input type='number' disabled={isDelete} {...register('stok', { valueAsNumber: true })} className="w-full p-2 border rounded" required />
+                </div>
                 <button
                     type="submit"
                     disabled={isSubmitting}
@@ -84,18 +89,18 @@ function Bahan() {
                 </button>
             </form>
         </Modal>
-        <Table rows={['#', 'Bahan', 'Price / Meter','']}>
+        <Table rows={['#', 'Bahan', 'Price / Meter', 'Stok (Meter)', '']}>
             {data?.map((data, id) => (
                 <tr key={id} >
                     <td>{id + 1}</td>
                     <td>{data.bahan}</td>
                     <td>{Number(data.price).toLocaleString()}</td>
+                    <td>{data.stok ?? 0}</td>
                     <td>
                         <div className="flex gap-2 justify-center items-center">
                             <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                 <Edit size={16} />
                             </button>
-
                             <button onClick={() => handleDelete(data)} className="btn-danger btn">
                                 <Trash size={16} />
                             </button>

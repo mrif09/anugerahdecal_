@@ -99,6 +99,7 @@ function Transaksi() {
                 }
                 toast.success('Transaksi updated successfully');
             } else {
+                // Status pengerjaan otomatis "menunggu antrian" saat tambah
                 await addDoc(collection(db, 'transaksis'), {
                     ...data,
                     status_pengerjaan: 'menunggu antrian',
@@ -145,8 +146,11 @@ function Transaksi() {
             setIsLunasOnlyEditable(false);
         }
 
-        // Status pengerjaan tidak bisa diedit jika sudah selesai
-        if (data.status_pengerjaan === 'sudah selesai') {
+        // Tombol edit/modal disable jika sudah selesai DAN lunas, atau cancel
+        if (
+            (data.status_pengerjaan === 'sudah selesai' && data.status_pembayaran === 'lunas') ||
+            data.status_pengerjaan === 'cancel'
+        ) {
             setIsEditDisabled(true);
         } else {
             setIsEditDisabled(false);
@@ -185,7 +189,9 @@ function Transaksi() {
         return <>Please wait...</>;
     }
 
-    const nominalDP = Number(watch('nominal_dp')) || 0;
+    // Ambil nominal DP sebagai angka
+    const nominalDPRaw = watch('nominal_dp');
+    const nominalDP = Number(nominalDPRaw) || 0;
     const sisaPembayaran = watch('status_pembayaran') === 'DP' ? Math.max(totalHarga - nominalDP, 0) : 0;
 
     // FILTER & SEARCH LOGIC
@@ -278,14 +284,16 @@ function Transaksi() {
                         value={filterEndDate}
                         onChange={e => setFilterEndDate(e.target.value)}
                     />
-                    <button className="btn" onClick={() => {
-                        setFilterCustomer('');
-                        setFilterPembayaran('');
-                        setFilterPengerjaan('');
-                        setSearch('');
-                        setFilterStartDate('');
-                        setFilterEndDate('');
-                    }}>Reset</button>
+                    <button
+                        className="px-4 py-2 rounded font-semibold shadow border bg-red-100 text-red-700 hover:bg-red-500 hover:text-white transition"
+                        onClick={() => {
+                            setFilterCustomer('');
+                            setFilterPembayaran('');
+                            setFilterPengerjaan('');
+                            setSearch('');
+                            setFilterStartDate('');
+                            setFilterEndDate('');
+                        }}>Reset</button>
                 </div>
 
                 <Modal isOpen={isOpen} handleOpen={handleOpen} title={isDelete ? 'Delete Transaksi' : isEditing ? 'Update Transaksi' : 'Add Transaksi'}>
@@ -355,29 +363,43 @@ function Transaksi() {
                                 {/* <option value='cancel'>cancel</option> */}
                             </select>
                         </div>
-
                         {watch('status_pembayaran') === 'DP' && (
                             <div>
                                 <label className="block mb-2">Nominal DP:</label>
-                                <input
-                                    type="number"
-                                    {...register('nominal_dp', {
-                                        required: true,
-                                        min: 1,
-                                        max: totalHarga
-                                    })}
-                                    className="w-full p-2 border rounded"
-                                    placeholder="Masukkan nominal DP"
-                                    disabled={isDelete || isEditDisabled || isLunasOnlyEditable}
-                                />
-                                <small className="text-gray-500">Maksimal: Rp{totalHarga.toLocaleString()}</small>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">Rp</span>
+                                    <input
+                                        type="text"
+                                        {...register('nominal_dp', {
+                                            required: true,
+                                            min: 1,
+                                            max: totalHarga,
+                                            onChange: e => {
+                                                // Hanya angka, hapus karakter non-digit
+                                                const raw = e.target.value.replace(/[^\d]/g, '');
+                                                setValue('nominal_dp', raw);
+                                            }
+                                        })}
+                                        className="w-full pl-8 p-2 border rounded"
+                                        placeholder="0"
+                                        disabled={isDelete || isEditDisabled || isLunasOnlyEditable}
+                                        value={nominalDPRaw || ''} // <-- Hapus .toLocaleString('id-ID')
+                                        onChange={e => {
+                                            // Hanya angka, hapus karakter non-digit
+                                            const raw = e.target.value.replace(/[^\d]/g, '');
+                                            setValue('nominal_dp', raw);
+                                        }}
+                                    />
+                                </div>
+                                <small className="text-gray-500">Maksimal: Rp{totalHarga.toLocaleString('id-ID')}</small>
                                 <div className="mt-1 text-sm">
-                                    Sisa pembayaran: <span className="font-semibold">Rp{sisaPembayaran.toLocaleString()}</span>
+                                    Sisa pembayaran: <span className="font-semibold">Rp{sisaPembayaran.toLocaleString('id-ID')}</span>
                                 </div>
                             </div>
                         )}
 
-                        {(isEditing || (!isEditing && watch('status_pembayaran') !== '')) && (
+                        {/* Status Pengerjaan hanya tampil saat edit/delete */}
+                        {(isEditing || isDelete) && (
                             <div>
                                 <label className="block mb-2">Status Pengerjaan:</label>
                                 <select
@@ -421,7 +443,10 @@ function Transaksi() {
                         const price = Number(data.price) || 0;
                         const nominalDP = Number(data.nominal_dp) || 0;
                         const sisaPembayaran = data.status_pembayaran === 'DP' ? Math.max(price - nominalDP, 0) : 0;
-                        const disableEdit = data.status_pengerjaan === 'cancel' || data.status_pengerjaan === 'sudah selesai';
+                        // Tombol edit disable jika sudah selesai DAN lunas, atau cancel
+                        const disableEdit =
+                            (data.status_pengerjaan === 'sudah selesai' && data.status_pembayaran === 'lunas') ||
+                            data.status_pengerjaan === 'cancel';
 
                         return (
                             <tr key={id} className={data.status_pembayaran === 'cancel' ? 'bg-red-100' : ''}>
