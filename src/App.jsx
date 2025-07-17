@@ -15,6 +15,7 @@ import Login from "./pages/login"
 import useAuthStore from "./store/authStore"
 import DashboardIndex from "./pages/dashboard/dashboardIndex"
 import Invoice from "./pages/dashboard/invoice"
+import JasaForm from "./pages/dashboard/productDetails/JasaForm"
 
 function App() {
   const { user, initializeAuth, loading } = useAuthStore()
@@ -67,6 +68,7 @@ function App() {
             <Route path="bahan" element={<Bahan />} />
             <Route path="kategori" element={<Kategori />} />
             <Route path="laminating" element={<Laminating />} />
+            <Route path="jasa" element={<JasaForm />} />
           </Route>
           
           <Route path="customer" element={<Customer />} />

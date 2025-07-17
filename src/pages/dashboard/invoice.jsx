@@ -64,29 +64,25 @@ function Invoice() {
                 {transaksi.listProduct?.map((item, idx) => {
                   const namaProduk = item.product?.split(",")[0] ?? "";
                   const hargaProduk = Number(item.product?.split(",")[1] ?? 0);
-                  const hargaBahan = Number(item.bahan ?? 0);
-                  const hargaLaminating = Number(item.laminating ?? 0);
+                  const hargaBahan = Number(item.harga_bahan ?? 0);
+                  const hargaLaminating = Number(item.harga_laminating ?? 0);
+                  const hargaJasa = Number(item.harga_jasa ?? 0);
                   const qty = Number(item.qty ?? 0);
                   const hargaTotalProduk =
-                    hargaProduk + (hargaBahan + hargaLaminating) * qty;
+                    (hargaProduk + hargaJasa) + ((hargaBahan + hargaLaminating) * qty);
                   return (
-                    <li
-                      key={idx}
-                      className="bg-white rounded border-l-4 border-blue-400 p-2 text-black shadow-sm"
-                    >
+                    <li key={idx} className="bg-white rounded border-l-4 border-blue-400 p-2 text-black shadow-sm">
                       <div className="font-medium">
-                        {namaProduk}{" "}
-                        <span className="text-gray-500">- {qty}m</span>
+                        {namaProduk} <span className="text-gray-500">- {qty}m</span>
                         <span className="float-right font-semibold">
                           Rp{hargaTotalProduk.toLocaleString()}
                         </span>
                       </div>
                       <div className="text-xs ml-2 mt-1 text-black">
-                        Harga Produk: <span>Rp{hargaProduk.toLocaleString()}</span>
-                        <br />
-                        Harga Bahan: <span>Rp{hargaBahan.toLocaleString()}</span> /m
-                        <br />
-                        Harga Laminasi: <span>Rp{hargaLaminating.toLocaleString()}</span> /m
+                        Harga Produk: <span>Rp{hargaProduk.toLocaleString()}</span><br />
+                        Harga Bahan: <span>Rp{hargaBahan.toLocaleString()}</span> /m<br />
+                        Harga Laminasi: <span>Rp{hargaLaminating.toLocaleString()}</span> /m<br />
+                        Harga Jasa: <span>Rp{hargaJasa.toLocaleString()}</span>
                       </div>
                     </li>
                   );

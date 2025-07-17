@@ -17,6 +17,7 @@ export const fetcherBahans = () => fetcher('bahans')
 export const fetcherLaminatings = () => fetcher('laminatings')
 export const fetcherTransactions = () => fetcher('transaksis')
 export const fetcherCustomers = () => fetcher('customers')
+export const fetcherJasas = () => fetcher('jasas')
 
 export const fetcherDashboards = async () => {
     const now = new Date();

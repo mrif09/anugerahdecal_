@@ -10,7 +10,7 @@ function ProductDetails() {
                 <h2 className="text-2xl font-semibold">Product Details</h2>
 
                 <div className="flex gap-x-2">
-                    {['Merk', 'Model', 'Kategori', 'Bahan', 'Laminating'].map((item) =>
+                    {['Merk', 'Model', 'Kategori', 'Bahan', 'Laminating', 'jasa'].map((item) =>
                         <Navlink to={`./${item.toLowerCase()}`} className="btn-primary btn" key={item}>{item}</Navlink>
                     )}
                 </div>

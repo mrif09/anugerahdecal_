@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import useSWR, { mutate } from 'swr';
 import Modal from '../../components/modal';
 import Table from '../../components/table';
-import { fetcherBahans, fetcherCustomers, fetcherLaminatings, fetcherProducts, fetcherTransactions } from '../../lib/fetcher';
+import { fetcherBahans, fetcherCustomers, fetcherLaminatings, fetcherProducts, fetcherTransactions, fetcherJasas } from '../../lib/fetcher';
 import { db } from '../../lib/firebase';
 
 function Transaksi() {
@@ -15,6 +15,7 @@ function Transaksi() {
     const { data: products, isProductsLoading } = useSWR('products', fetcherProducts);
     const { data: bahans, isBahansLoading } = useSWR('bahans', fetcherBahans);
     const { data: laminatings, isLaminatingsLoading } = useSWR('laminatings', fetcherLaminatings);
+    const { data: jasas, isLoading: isJasasLoading } = useSWR('jasas', fetcherJasas);
     const { data, isLoading } = useSWR('transaksis', fetcherTransactions);
 
     const [isOpen, setIsOpen] = useState(false);
@@ -89,7 +90,30 @@ function Transaksi() {
                 toast.success('Transaksi updated successfully');
             } else {
                 // Update stok bahan dan laminating
-                const listProduct = formData.listProduct;
+                // --- START: Tambahkan harga bahan, laminating, jasa ke setiap produk ---
+                const listProduct = formData.listProduct.map(product => {
+                    const qty = Number(product.qty) || 0;
+                    // Ambil harga bahan dari id
+                    const bahanObj = bahans?.find(b => b.id === product.bahan);
+                    const harga_bahan = bahanObj ? Number(bahanObj.price) : 0;
+                    // Ambil harga laminating dari id
+                    const laminatingObj = laminatings?.find(l => l.id === product.laminating);
+                    const harga_laminating = laminatingObj ? Number(laminatingObj.price) : 0;
+                    // Ambil harga jasa dari value select (format: [id,harga])
+                    let harga_jasa = 0;
+                    if (product.jasa && typeof product.jasa === 'string' && product.jasa.includes(',')) {
+                        harga_jasa = Number(product.jasa.split(',')[1]);
+                    }
+                    return {
+                        ...product,
+                        harga_bahan,
+                        harga_laminating,
+                        harga_jasa,
+                    };
+                });
+                // --- END: Tambahkan harga bahan, laminating, jasa ke setiap produk ---
+
+                // Update stok bahan dan laminating
                 for (const product of listProduct) {
                     const qty = Number(product.qty) || 0;
 
@@ -132,6 +156,7 @@ function Transaksi() {
 
                 await addDoc(collection(db, 'transaksis'), {
                     ...data,
+                    listProduct, // simpan listProduct yang sudah ada harga
                     status_pengerjaan: 'menunggu antrian',
                     date_transaction: serverTimestamp()
                 });
@@ -163,7 +188,8 @@ function Transaksi() {
         setValue('status_pengerjaan', data.status_pengerjaan);
         setValue('listProduct', data.listProduct?.map(lp => ({
             ...lp,
-            product: typeof lp.product === 'string' ? lp.product : ''
+            product: typeof lp.product === 'string' ? lp.product : '',
+            jasa: typeof lp.jasa === 'string' ? lp.jasa : ''
         })));
         setValue('nominal_dp', data.nominal_dp || '');
         setIsEditing(true);
@@ -187,7 +213,7 @@ function Transaksi() {
         }
     };
 
-    // Penjumlahan harga yang benar (ambil harga bahan/laminating dari id)
+    // Penjumlahan harga yang benar (ambil harga bahan/laminating dari id, harga jasa dari value select)
     const totalHarga = (() => {
         const list = watch('listProduct') || [];
         return list
@@ -198,6 +224,12 @@ function Transaksi() {
                         ? e.product.split(',')[1]
                         : 0
                 );
+                // Ambil harga jasa dari value select (format: [id,harga])
+                const priceJasa = Number(
+                    typeof e.jasa === 'string' && e.jasa.includes(',')
+                        ? e.jasa.split(',')[1]
+                        : 0
+                );
                 // Ambil harga bahan dari id
                 const bahanObj = bahans?.find(b => b.id === e.bahan);
                 const hargaBahan = bahanObj ? Number(bahanObj.price) : 0;
@@ -205,7 +237,7 @@ function Transaksi() {
                 const laminatingObj = laminatings?.find(l => l.id === e.laminating);
                 const hargaLaminating = laminatingObj ? Number(laminatingObj.price) : 0;
                 const qty = Number(e.qty) || 0;
-                return (priceProduct + ((hargaBahan + hargaLaminating) * qty));
+                return (priceProduct + priceJasa + ((hargaBahan + hargaLaminating) * qty));
             })
             .reduce((acc, cur) => acc + cur, 0);
     })();
@@ -221,7 +253,7 @@ function Transaksi() {
         }
     }, [watch('status_pengerjaan'), setValue]);
 
-    if (isLoading || isCustomersLoading || isProductsLoading || isLaminatingsLoading || isBahansLoading) {
+    if (isLoading || isCustomersLoading || isProductsLoading || isLaminatingsLoading || isBahansLoading || isJasasLoading) {
         return <>Please wait...</>;
     }
 
@@ -344,7 +376,7 @@ function Transaksi() {
                             </select>
                         </div>
                         <div>
-                            <label className="block mb-2">Product:</label>
+                            <label className="block mb-2">Product & Jasa:</label>
                             {
                                 productArray.fields.map((field, id) => {
                                     return (
@@ -353,6 +385,13 @@ function Transaksi() {
                                                 <option value="">Select Product</option>
                                                 {products?.slice().sort((a, b) => a.product.localeCompare(b.product)).map((option, index) =>
                                                     <option key={index} value={[option.product, option.price]}>{option.product}</option>
+                                                )}
+                                            </select>
+                                            {/* Pilihan jasa */}
+                                            <select disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.jasa`)} className="p-2 border rounded">
+                                                <option value="">Select Jasa</option>
+                                                {jasas?.map((option, index) =>
+                                                    <option key={index} value={[option.id, option.harga]}>{option.kategori}</option>
                                                 )}
                                             </select>
                                             <select disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.bahan`)} className="p-2 border rounded" required>
@@ -396,7 +435,6 @@ function Transaksi() {
                                 {['DP', 'lunas'].map((option, id) =>
                                     <option key={id} value={option}>{option}</option>
                                 )}
-                                {/* <option value='cancel'>cancel</option> */}
                             </select>
                         </div>
                         {watch('status_pembayaran') === 'DP' && (
@@ -489,9 +527,25 @@ function Transaksi() {
                                 <td>{id + 1}</td>
                                 <td>{data.customer}</td>
                                 <td>
-                                    {data.listProduct?.map((data, id) => <div key={id}>
-                                        {typeof data.product === 'string' ? data.product.split(',')[0] : ''}, {data.qty}m <br />
-                                    </div>)}
+                                    {data.listProduct?.map((lp, idx) => {
+                                        // Ambil nama jasa jika ada
+                                        let jasaName = '';
+                                        if (lp.jasa && jasas) {
+                                            if (typeof lp.jasa === 'string' && lp.jasa.includes(',')) {
+                                                // Format [id,harga]
+                                                const jasaId = lp.jasa.split(',')[0];
+                                                const jasaObj = jasas.find(j => j.id === jasaId);
+                                                jasaName = jasaObj ? jasaObj.kategori : '';
+                                            }
+                                        }
+                                        return (
+                                            <div key={idx}>
+                                                {typeof lp.product === 'string' ? lp.product.split(',')[0] : ''}
+                                                {jasaName ? `, ${jasaName}` : ''}
+                                                , {lp.qty}m <br />
+                                            </div>
+                                        );
+                                    })}
                                 </td>
                                 <td>{`Rp${price.toLocaleString()}`}</td>
                                 <td>{data.status_pembayaran === 'DP' ? `Rp${nominalDP.toLocaleString()}` : '-'}</td>
