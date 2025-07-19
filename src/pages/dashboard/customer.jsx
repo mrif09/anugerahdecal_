@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, updateDoc } from '@firebase/firestore';
 import clsx from 'clsx';
 import { Edit, Trash } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import useSWR, { mutate } from 'swr';
@@ -17,6 +17,19 @@ function Customer() {
     const [isDelete, setIsDelete] = useState(false)
     const [isEditing, setIsEditing] = useState(false)
     const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm()
+
+    // State untuk pencarian
+    const [search, setSearch] = useState('');
+
+    // Filter data customer berdasarkan pencarian
+    const filteredCustomers = useMemo(() => {
+        if (!data) return [];
+        return data.filter((item) =>
+            item.nama.toLowerCase().includes(search.toLowerCase()) ||
+            item.no_hp.toLowerCase().includes(search.toLowerCase())
+        );
+    }, [data, search]);
+
     const handleOpen = () => {
         setIsOpen(!isOpen)
         setIsDelete(false)
@@ -69,6 +82,25 @@ function Customer() {
                 <h2 className="text-2xl font-semibold">Customer</h2>
                 <button onClick={handleOpen} className="btn btn-primary">Add Customer</button>
             </div>
+            {/* Search input */}
+            <div className="mb-4">
+                <input
+                    type="text"
+                    placeholder="Cari nama atau nomor HP..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="p-2 border rounded w-64"
+                />
+                {search && (
+                    <button
+                        className="ml-2 px-3 py-2 rounded bg-red-500 text-white hover:bg-red-600"
+                        onClick={() => setSearch('')}
+                        type="button"
+                    >
+                        Reset
+                    </button>
+                )}
+            </div>
             <Modal isOpen={isOpen} handleOpen={handleOpen} title={isDelete ? 'Delete Customer' : isEditing ? 'Update Customer' : 'Add Customer'}>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
@@ -89,7 +121,7 @@ function Customer() {
                 </form>
             </Modal>
             <Table rows={['#', 'Nama', 'Nomor HP (WA)', '']}>
-                {data?.map((data, id) => (
+                {filteredCustomers?.map((data, id) => (
                     <tr key={id} >
                         <td>{id + 1}</td>
                         <td>{data.nama}</td>

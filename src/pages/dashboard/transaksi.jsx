@@ -406,7 +406,21 @@ function Transaksi() {
                                                     <option key={index} value={option.id}>{option.laminating} (Stok: {option.stok})</option>
                                                 )}
                                             </select>
-                                            <input disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable} {...register(`listProduct.${id}.qty`)} type="number" className="w-20 border p-2 rounded" placeholder="1" required min={1} />
+                                            <div className="flex flex-col">
+                                                <label className="text-xs mb-1 ml-1">Ukuran (meter)</label>
+                                                <div className="flex items-center border rounded px-2 py-1 bg-white">
+                                                    <input
+                                                        disabled={isEditing || isDelete || isEditDisabled || isLunasOnlyEditable}
+                                                        {...register(`listProduct.${id}.qty`)}
+                                                        type="number"
+                                                        className="w-16 border-0 focus:ring-0 focus:outline-none p-1"
+                                                        placeholder="1"
+                                                        required
+                                                        min={1}
+                                                    />
+                                                    <span className="ml-1 text-gray-600">m</span>
+                                                </div>
+                                            </div>
                                             {!(isEditing || isDelete || isEditDisabled || isLunasOnlyEditable) &&
                                                 <button type="button" onClick={() => handleRemove(productArray, field.id)}>
                                                     <Minus className="hover:opacity-70" />
@@ -418,7 +432,7 @@ function Transaksi() {
                             }
                             {!(isEditing || isDelete || isEditDisabled || isLunasOnlyEditable) &&
                                 <button className="btn border w-full" type="button" onClick={() => productArray.append({ id: Date.now(), product: '' })}>
-                                    Add Product
+                                    Tambah Produk
                                 </button>
                             }
                         </div>

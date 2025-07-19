@@ -1,7 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, updateDoc } from '@firebase/firestore';
 import clsx from 'clsx';
 import { Edit, Trash } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import useSWR, { mutate } from 'swr';
@@ -15,14 +15,31 @@ function Product() {
     const { data: merks, isMerksLoading } = useSWR('merks', fetcherMerks);
     const { data: models, isModelsLoading } = useSWR('models', fetcherModels);
     const { data: kategoris, isKategorisLoading } = useSWR('kategoris', fetcherKategoris);
-    
 
     const [editingProduct, setEditingProduct] = useState(null);
     const [isDelete, setIsDelete] = useState(false);
     const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm();
-
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // State untuk search dan filter
+    const [search, setSearch] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
+    const [filterMerk, setFilterMerk] = useState('');
+    const [filterModel, setFilterModel] = useState('');
+
+    // Filter dan search produk
+    const filteredProducts = useMemo(() => {
+        if (!products) return [];
+        return products.filter((item) => {
+            const matchesSearch =
+                item.product.toLowerCase().includes(search.toLowerCase()) ||
+                item.description.toLowerCase().includes(search.toLowerCase());
+            const matchesCategory = filterCategory ? item.category === filterCategory : true;
+            const matchesMerk = filterMerk ? item.merk === filterMerk : true;
+            const matchesModel = filterModel ? item.model === filterModel : true;
+            return matchesSearch && matchesCategory && matchesMerk && matchesModel;
+        });
+    }, [products, search, filterCategory, filterMerk, filterModel]);
 
     const onSubmit = async (data) => {
         try {
@@ -33,7 +50,7 @@ function Product() {
                 return;
             }
 
-            if(data.product.includes(',')){
+            if (data.product.includes(',')) {
                 toast.error('Nama produk dilarang menggunakan , (koma)')
                 return
             }
@@ -107,6 +124,60 @@ function Product() {
                 <button onClick={handleOpen} className="btn btn-primary">Add Product</button>
             </div>
 
+            {/* Search & Filter */}
+            <div className="flex flex-wrap gap-4 mb-4">
+                <input
+                    type="text"
+                    placeholder="Search product or description..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="p-2 border rounded w-64"
+                />
+                <select
+                    value={filterCategory}
+                    onChange={e => setFilterCategory(e.target.value)}
+                    className="p-2 border rounded"
+                >
+                    <option value="">All Categories</option>
+                    {kategoris?.map((option, id) =>
+                        <option key={id} value={option.kategori}>{option.kategori}</option>
+                    )}
+                </select>
+                <select
+                    value={filterMerk}
+                    onChange={e => setFilterMerk(e.target.value)}
+                    className="p-2 border rounded"
+                >
+                    <option value="">All Merks</option>
+                    {merks?.map((option, id) =>
+                        <option key={id} value={option.merk}>{option.merk}</option>
+                    )}
+                </select>
+                <select
+                    value={filterModel}
+                    onChange={e => setFilterModel(e.target.value)}
+                    className="p-2 border rounded"
+                >
+                    <option value="">All Models</option>
+                    {models
+                        ?.filter(m => !filterMerk || m.merk === filterMerk)
+                        .map((option, id) =>
+                            <option key={id} value={option.model}>{option.model}</option>
+                        )}
+                </select>
+                <button
+                    className="px-4 py-2 rounded font-semibold shadow border bg-red-100 text-red-700 hover:bg-red-500 hover:text-white transition"
+                    onClick={() => {
+                        setSearch('');
+                        setFilterCategory('');
+                        setFilterMerk('');
+                        setFilterModel('');
+                    }}
+                    type="button"
+                >
+                    Reset
+                </button>
+            </div>
             <Modal isOpen={isModalOpen} handleOpen={handleOpen} title={isDelete ? 'Delete Product' : editingProduct ? 'Edit Product' : 'Add Product'}>
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                     <div>
@@ -197,7 +268,7 @@ function Product() {
             </Modal>
 
             <Table rows={['#', 'Image', 'Product', 'Description', 'Category', 'Merk', 'Model', 'Price', '']}>
-                {products?.map((data, id) => (
+                {filteredProducts?.map((data, id) => (
                     <tr key={id} >
                         <td>{id + 1}</td>
                         <td>
