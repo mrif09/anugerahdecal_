@@ -525,28 +525,33 @@ function Transaksi() {
                         </button>
                     </form>
                 </Modal>
-
-                <Table rows={['#', 'Customer', 'Produk', 'Total Harga', 'Nominal DP', 'Sisa Pembayaran', 'Tanggal', 'Status pengerjaan', 'Status Pembayaran', 'Invoice', '']}>
+                <Table
+                    rows={['No', 'Customer', 'Produk', 'Total Harga', 'Nominal DP', 'Sisa Pembayaran', 'Tanggal', 'Status pengerjaan', 'Status Pembayaran', 'Invoice', 'Edit']}
+                    className="border border-black border-collapse w-full"
+                >
                     {filteredData?.slice().sort((a, b) => b.date_transaction.seconds - a.date_transaction.seconds).map((data, id) => {
                         const price = Number(data.price) || 0;
                         const nominalDP = Number(data.nominal_dp) || 0;
                         const sisaPembayaran = data.status_pembayaran === 'DP' ? Math.max(price - nominalDP, 0) : 0;
-                        // Tombol edit disable jika sudah selesai DAN lunas, atau cancel
                         const disableEdit =
                             (data.status_pengerjaan === 'sudah selesai' && data.status_pembayaran === 'lunas') ||
                             data.status_pengerjaan === 'cancel';
 
                         return (
-                            <tr key={id} className={data.status_pembayaran === 'cancel' ? 'bg-red-100' : ''}>
-                                <td>{id + 1}</td>
-                                <td>{data.customer}</td>
-                                <td>
+                            <tr
+                                key={id}
+                                className={clsx(
+                                    data.status_pembayaran === 'cancel' ? 'bg-red-100' : '',
+                                    'border-b border-black'
+                                )}
+                            >
+                                <td className="border border-black">{id + 1}</td>
+                                <td className="border border-black">{data.customer}</td>
+                                <td className="border border-black">
                                     {data.listProduct?.map((lp, idx) => {
-                                        // Ambil nama jasa jika ada
                                         let jasaName = '';
                                         if (lp.jasa && jasas) {
                                             if (typeof lp.jasa === 'string' && lp.jasa.includes(',')) {
-                                                // Format [id,harga]
                                                 const jasaId = lp.jasa.split(',')[0];
                                                 const jasaObj = jasas.find(j => j.id === jasaId);
                                                 jasaName = jasaObj ? jasaObj.kategori : '';
@@ -561,13 +566,13 @@ function Transaksi() {
                                         );
                                     })}
                                 </td>
-                                <td>{`Rp${price.toLocaleString()}`}</td>
-                                <td>{data.status_pembayaran === 'DP' ? `Rp${nominalDP.toLocaleString()}` : '-'}</td>
-                                <td>{data.status_pembayaran === 'DP' ? `Rp${sisaPembayaran.toLocaleString()}` : '-'}</td>
-                                <td>{data.date_transaction.toDate().toLocaleString('en-GB')}</td>
-                                <td>{data.status_pengerjaan}</td>
-                                <td>{data.status_pembayaran}</td>
-                                <td>
+                                <td className="border border-black">{`Rp${price.toLocaleString()}`}</td>
+                                <td className="border border-black">{data.status_pembayaran === 'DP' ? `Rp${nominalDP.toLocaleString()}` : '-'}</td>
+                                <td className="border border-black">{data.status_pembayaran === 'DP' ? `Rp${sisaPembayaran.toLocaleString()}` : '-'}</td>
+                                <td className="border border-black">{data.date_transaction.toDate().toLocaleString('en-GB')}</td>
+                                <td className="border border-black">{data.status_pengerjaan}</td>
+                                <td className="border border-black">{data.status_pembayaran}</td>
+                                <td className="border border-black">
                                     <button
                                         className={clsx("px-4 py-2 rounded font-semibold shadow transition", data.status_pengerjaan === 'cancel' ? "bg-gray-400 text-white cursor-not-allowed" : "bg-green-500 hover:bg-green-600 text-white")}
                                         onClick={() => {
@@ -580,7 +585,7 @@ function Transaksi() {
                                         Invoice
                                     </button>
                                 </td>
-                                <td>
+                                <td className="border border-black">
                                     <div className="flex gap-2 justify-center items-center">
                                         <button
                                             onClick={() => handleEdit(data)}

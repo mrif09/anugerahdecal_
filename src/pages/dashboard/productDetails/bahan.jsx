@@ -89,14 +89,15 @@ function Bahan() {
                 </button>
             </form>
         </Modal>
-        <Table rows={['#', 'Bahan', 'Price / Meter', 'Stok (Meter)', '']}>
+        <Table rows={['No', 'Bahan', 'Price / Meter', 'Stok (Meter)', 'Edit/Delete']}
+            className="border border-black border-collapse w-full">
             {data?.map((data, id) => (
-                <tr key={id} >
-                    <td>{id + 1}</td>
-                    <td>{data.bahan}</td>
-                    <td>{Number(data.price).toLocaleString()}</td>
-                    <td>{data.stok ?? 0}</td>
-                    <td>
+                <tr key={id} className="border-b border-black">
+                    <td className="border border-black">{id + 1}</td>
+                    <td className="border border-black">{data.bahan}</td>
+                    <td className="border border-black">{Number(data.price).toLocaleString()}</td>
+                    <td className="border border-black">{data.stok ?? 0}</td>
+                    <td className="border border-black">
                         <div className="flex gap-2 justify-center items-center">
                             <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                 <Edit size={16} />

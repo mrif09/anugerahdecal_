@@ -267,20 +267,20 @@ function Product() {
                 </form>
             </Modal>
 
-            <Table rows={['#', 'Image', 'Product', 'Description', 'Category', 'Merk', 'Model', 'Price', '']}>
+            <Table rows={['No', 'Image', 'Product', 'Description', 'Category', 'Merk', 'Model', 'Price', 'Edit/Delete']}>
                 {filteredProducts?.map((data, id) => (
-                    <tr key={id} >
-                        <td>{id + 1}</td>
-                        <td>
+                    <tr key={id} className="border border-black" >
+                        <td className="border border-black">{id + 1}</td>
+                        <td className="border border-black">
                             <img src={data.image} alt={data.name} className="w-24 h-24 object-cover rounded" />
                         </td>
-                        <td>{data.product} </td>
-                        <td>{data.description}</td>
-                        <td>{data.category}</td>
-                        <td>{data.merk}</td>
-                        <td>{data.model}</td>
-                        <td>{Number(data.price).toLocaleString()}</td>
-                        <td>
+                        <td className="border border-black">{data.product} </td>
+                        <td className="border border-black">{data.description}</td>
+                        <td className="border border-black">{data.category}</td>
+                        <td className="border border-black">{data.merk}</td>
+                        <td className="border border-black">{data.model}</td>
+                        <td className="border border-black">{Number(data.price).toLocaleString()}</td>
+                        <td className="border border-black">
                             <div className="flex flex-col gap-2 justify-center items-center">
                                 <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                     <Edit size={16} />

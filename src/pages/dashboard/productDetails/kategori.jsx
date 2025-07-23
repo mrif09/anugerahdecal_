@@ -81,12 +81,12 @@ function Kategori() {
                 </button>
             </form>
         </Modal>
-        <Table rows={['#', 'Kategori', '']}>
+        <Table rows={['No', 'Kategori', 'Edit/Delete']}>
             {data?.map((data, id) => (
-                <tr key={id} >
-                    <td>{id + 1}</td>
-                    <td>{data.kategori}</td>
-                    <td>
+                <tr key={id} className="border border-black" >
+                    <td className="border border-black">{id + 1}</td>
+                    <td className="border border-black">{data.kategori}</td>
+                    <td className="border border-black">
                         <div className="flex gap-2 justify-center items-center">
                             <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                 <Edit size={16} />

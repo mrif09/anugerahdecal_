@@ -103,13 +103,13 @@ function JasaForm() {
                     </button>
                 </form>
             </Modal>
-            <Table rows={['#', 'Kategori Jasa', 'Harga', '']}>
+            <Table rows={['No', 'Kategori Jasa', 'Harga', 'Edit/Delete']}>
                 {jasas?.map((data, id) => (
-                    <tr key={id}>
-                        <td>{id + 1}</td>
-                        <td>{data.kategori}</td>
-                        <td>Rp {parseInt(data.harga).toLocaleString()}</td>
-                        <td>
+                    <tr key={id} className="border border-black">
+                        <td className="border border-black">{id + 1}</td>
+                        <td className="border border-black">{data.kategori}</td>
+                        <td className="border border-black">Rp {parseInt(data.harga).toLocaleString()}</td>
+                        <td className="border border-black">
                             <div className="flex gap-2 justify-center items-center">
                                 <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                     <Edit size={16} />

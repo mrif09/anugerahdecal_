@@ -120,18 +120,20 @@ function Customer() {
                     </button>
                 </form>
             </Modal>
-            <Table rows={['#', 'Nama', 'Nomor HP (WA)', '']}>
+            <Table
+                rows={['No', 'Nama', 'Nomor HP (WA)', 'Edit/Delete']}
+                className="border border-black border-collapse w-full"
+            >
                 {filteredCustomers?.map((data, id) => (
-                    <tr key={id} >
-                        <td>{id + 1}</td>
-                        <td>{data.nama}</td>
-                        <td>{data.no_hp}</td>
-                        <td>
+                    <tr key={id} className="border-b border-black">
+                        <td className="border border-black">{id + 1}</td>
+                        <td className="border border-black">{data.nama}</td>
+                        <td className="border border-black">{data.no_hp}</td>
+                        <td className="border border-black">
                             <div className="flex gap-2 justify-center items-center">
                                 <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                     <Edit size={16} />
                                 </button>
-
                                 <button onClick={() => handleDelete(data)} className="btn-danger btn">
                                     <Trash size={16} />
                                 </button>

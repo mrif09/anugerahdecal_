@@ -89,14 +89,14 @@ function Laminating() {
                 </button>
             </form>
         </Modal>
-        <Table rows={['#', 'Laminating', 'Price / Meter', 'Stok (Meter)', '']}>
+        <Table rows={['No', 'Laminating', 'Price / Meter', 'Stok (Meter)', 'Edit/Delete']}>
             {data?.map((data, id) => (
-                <tr key={id} >
-                    <td>{id + 1}</td>
-                    <td>{data.laminating}</td>
-                    <td>{Number(data.price).toLocaleString()}</td>
-                    <td>{data.stok ?? 0}</td>
-                    <td>
+                <tr key={id} className="border border-black" >
+                    <td className="border border-black">{id + 1}</td>
+                    <td className="border border-black">{data.laminating}</td>
+                    <td className="border border-black">{Number(data.price).toLocaleString()}</td>
+                    <td className="border border-black">{data.stok ?? 0}</td>
+                    <td className="border border-black">
                         <div className="flex gap-2 justify-center items-center">
                             <button onClick={() => handleEdit(data)} className="btn-warning btn">
                                 <Edit size={16} />
